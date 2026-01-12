@@ -789,20 +789,6 @@ th {
                         <button.icon size={20} />
                         {button.label}
                         
-                        {/* Amiodaron Dosierung */}
-                        {button.type === 'amiodaron' && (
-                          <span className="text-xs text-gray-300">
-                            {amiodaronCount === 0 ? '300mg' : '150mg'}
-                          </span>
-                        )}
-                        
-                        {/* Adrenalin Dosierung */}
-                        {button.type === 'adrenalin' && (
-                          <span className="text-xs text-gray-300">
-                            1mg
-                          </span>
-                        )}
-                        
                         {/* Warning Icons */}
                         {button.type === 'amiodaron' && warnAmiodaron && (
                           <span className="flex items-center gap-1 text-sm font-bold text-yellow-300">

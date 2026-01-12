@@ -678,86 +678,116 @@ th {
         {/* Action Buttons */}
         <div className="bg-gray-800 rounded-lg p-4 mb-6">
           <h2 className="text-lg font-semibold mb-4">Ereignisse dokumentieren</h2>
-          
-          {/* Haupt-Buttons Grid (2x2) */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            {actionButtons.filter(b => ['rhythm', 'shock', 'adrenalin', 'amiodaron'].includes(b.type)).map(button => (
+          <div className="grid grid-cols-1 gap-3">
+            {actionButtons.map(button => (
               <div key={button.type}>
-                {button.type === 'rhythm' ? (
+                {button.submenu ? (
                   <div>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => addEvent(button.type, button.label)} 
-                        className={`flex-1 flex flex-col items-center justify-center px-4 py-4 rounded-lg font-semibold transition-opacity hover:opacity-90 min-h-[80px] ${button.color} ${
-                          rhythmBlink ? 'gentle-blink' : ''
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <button.icon size={24} />
-                          <span className="text-base">{button.label}</span>
-                        </div>
-                        {lastRhythm !== null && (
-                          <div className="text-sm font-mono mt-1">
-                            {formatTime(timeSince(lastRhythm))}
-                          </div>
-                        )}
-                      </button>
+                    {button.noLog ? (
                       <button 
                         onClick={() => toggleSubmenu(button.type)} 
-                        className={`w-12 flex items-center justify-center rounded-lg font-semibold transition-opacity hover:opacity-90 border-l-2 border-black/20 min-h-[80px] ${button.color}`}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90 ${button.color}`}
                       >
-                        <span className="text-2xl">
-                          {rhythmOpen ? '▲' : '▼'}
+                        <div className="flex items-center gap-3">
+                          <button.icon size={20} />
+                          {button.label}
+                        </div>
+                        <span className="text-xl">
+                          {(button.type === 'events' && eventsOpen) ? '▲' : '▼'}
                         </span>
                       </button>
-                    </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
+                            addEvent(button.type, button.label);
+                            toggleSubmenu(button.type);
+                          }} 
+                          className={`flex-1 flex items-center justify-between px-4 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90 ${button.color} ${
+                            button.type === 'rhythm' && rhythmBlink ? 'gentle-blink' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <button.icon size={20} />
+                            {button.label}
+                          </div>
+                          {button.trackable && lastRhythm !== null && (
+                            <div className="text-sm font-mono">
+                              {formatTime(timeSince(lastRhythm))}
+                            </div>
+                          )}
+                        </button>
+                        <button 
+                          onClick={() => toggleSubmenu(button.type)} 
+                          className={`px-4 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90 border-l-2 border-black/20 ${button.color}`}
+                        >
+                          <span className="text-xl">
+                            {(button.type === 'rhythm' && rhythmOpen) ? '▲' : '▼'}
+                          </span>
+                        </button>
+                      </div>
+                    )}
                     
                     {/* Submenu */}
-                    {rhythmOpen && (
-                      <div className="mt-2 space-y-2">
-                        {button.submenu.map(item => (
-                          <button 
-                            key={item.type} 
-                            onClick={() => selectSubmenuItem(item, button.type)} 
-                            className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between"
-                          >
-                            <span>{item.label}</span>
-                            {item.shockable && (
-                              <Zap size={14} className="text-yellow-400" />
-                            )}
-                          </button>
-                        ))}
-                        <div className="border-t border-gray-600 mt-2 pt-2" />
-                        <div className="grid grid-cols-2 gap-2">
-                          <button 
-                            onClick={() => selectSubmenuItem({label: 'SR', type: 'sr'}, button.type)} 
-                            className="text-left px-4 py-2 bg-pink-900/30 hover:bg-pink-900/50 rounded-lg transition-colors"
-                          >
-                            SR
-                          </button>
-                          <button 
-                            onClick={() => selectSubmenuItem({label: 'VHF', type: 'vhf'}, button.type)} 
-                            className="text-left px-4 py-2 bg-pink-900/30 hover:bg-pink-900/50 rounded-lg transition-colors"
-                          >
-                            VHF
-                          </button>
-                        </div>
+                    {((button.type === 'rhythm' && rhythmOpen) || (button.type === 'events' && eventsOpen)) && (
+                      <div className="mt-2 ml-4 space-y-2">
+                        {button.type === 'rhythm' ? (
+                          <>
+                            {button.submenu.map(item => (
+                              <button 
+                                key={item.type} 
+                                onClick={() => selectSubmenuItem(item, button.type)} 
+                                className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between"
+                              >
+                                <span>{item.label}</span>
+                                {item.shockable && (
+                                  <Zap size={14} className="text-yellow-400" />
+                                )}
+                              </button>
+                            ))}
+                            <div className="border-t border-gray-600 mt-2 pt-2" />
+                            <div className="grid grid-cols-2 gap-2">
+                              <button 
+                                onClick={() => selectSubmenuItem({label: 'SR', type: 'sr'}, button.type)} 
+                                className="text-left px-4 py-2 bg-pink-900/30 hover:bg-pink-900/50 rounded-lg transition-colors"
+                              >
+                                SR
+                              </button>
+                              <button 
+                                onClick={() => selectSubmenuItem({label: 'VHF', type: 'vhf'}, button.type)} 
+                                className="text-left px-4 py-2 bg-pink-900/30 hover:bg-pink-900/50 rounded-lg transition-colors"
+                              >
+                                VHF
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          button.submenu.map(item => (
+                            <button 
+                              key={item.type} 
+                              onClick={() => selectSubmenuItem(item, button.type)} 
+                              className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                            >
+                              {item.label}
+                            </button>
+                          ))
+                        )}
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
                     <button 
                       onClick={() => addEvent(button.type, button.label)} 
-                      className={`w-full flex flex-col items-center justify-center px-4 py-4 rounded-lg font-semibold transition-opacity hover:opacity-90 min-h-[80px] ${button.color} ${
+                      className={`flex-1 flex items-center justify-between px-4 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90 ${button.color} ${
                         button.type === 'adrenalin' && adrenalinBlink ? 'gentle-blink' : ''
                       } ${
                         button.type === 'amiodaron' && amiodaronCount >= 2 ? 'opacity-50' : ''
                       }`}
                     >
-                      <div className="flex items-center gap-2 mb-1">
-                        <button.icon size={24} />
-                        <span className="text-base">{button.label}</span>
+                      <div className="flex items-center gap-3">
+                        <button.icon size={20} />
+                        {button.label}
                         
                         {/* Warning Icons */}
                         {button.type === 'amiodaron' && warnAmiodaron && (
@@ -817,10 +847,9 @@ th {
                           if (button.type === 'adrenalin') setShowAdrenalinInfo(!showAdrenalinInfo);
                           if (button.type === 'amiodaron') setShowAmiodaronInfo(!showAmiodaronInfo);
                         }} 
-                        className="w-full px-3 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors flex items-center justify-center gap-2"
+                        className="px-3 py-3 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors"
                       >
                         <Info size={18} />
-                        <span className="text-sm">Info</span>
                       </button>
                     )}
                   </div>
@@ -843,53 +872,6 @@ th {
                     <p className="text-xs mt-1">(Alternative: Lidocain 100mg/50mg)</p>
                     <p className="text-xs mt-2 font-semibold">⚠️ Amiodaron bei Long-QT / Hyperkaliämie vermeiden!</p>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-          
-          {/* Weitere Buttons (Ereignisse & ROSC) */}
-          <div className="grid grid-cols-1 gap-3">
-            {actionButtons.filter(b => ['events', 'rosc'].includes(b.type)).map(button => (
-              <div key={button.type}>
-                {button.submenu ? (
-                  <div>
-                    <button 
-                      onClick={() => toggleSubmenu(button.type)} 
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90 ${button.color}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <button.icon size={20} />
-                        {button.label}
-                      </div>
-                      <span className="text-xl">
-                        {(button.type === 'events' && eventsOpen) ? '▲' : '▼'}
-                      </span>
-                    </button>
-                    
-                    {/* Events Submenu */}
-                    {button.type === 'events' && eventsOpen && (
-                      <div className="mt-2 ml-4 space-y-2">
-                        {button.submenu.map(item => (
-                          <button 
-                            key={item.type} 
-                            onClick={() => selectSubmenuItem(item, button.type)} 
-                            className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                          >
-                            {item.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <button 
-                    onClick={() => addEvent(button.type, button.label)} 
-                    className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90 ${button.color}`}
-                  >
-                    <button.icon size={20} />
-                    {button.label}
-                  </button>
                 )}
               </div>
             ))}

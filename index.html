@@ -1,506 +1,1096 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Reanimation">
-  <title>Reanimations-Timer</title>
-  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-    }
-    * {
-      -webkit-tap-highlight-color: transparent;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Reanimation">
+<title>Reanimations-Timer</title>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background-color: #111827;
+}
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+@keyframes gentle-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+.gentle-blink {
+  animation: gentle-pulse 1.5s ease-in-out infinite;
+}
+</style>
 </head>
 <body>
-  <div id="root"></div>
-  
-  <script type="text/babel">
-    const { useState, useEffect } = React;
+<div id="root"></div>
+<script type="text/babel">
+const {useState, useEffect} = React;
 
-    const Play = ({size = 24}) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-    );
-    const Pause = ({size = 24}) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-    );
-    const RotateCcw = ({size = 24}) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
-    );
-    const Activity = ({size = 24}) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-    );
-    const Zap = ({size = 24}) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-    );
-    const Syringe = ({size = 24}) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 2 4 4"></path><path d="m17 7 3-3"></path><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"></path><path d="m9 11 4 4"></path><path d="m5 19-3 3"></path><path d="m14 4 6 6"></path></svg>
-    );
-    const Heart = ({size = 24}) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg>
-    );
-    const Info = ({size = 24}) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-    );
+// ========== ICONS ==========
+const Play = (props) => (
+  <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polygon points="5 3 19 12 5 21 5 3"/>
+  </svg>
+);
 
-    function ReanimationTimer() {
-      const [isRunning, setIsRunning] = useState(false);
-      const [time, setTime] = useState(0);
-      const [events, setEvents] = useState([]);
-      const [showRhythmMenu, setShowRhythmMenu] = useState(false);
-      const [showEventsMenu, setShowEventsMenu] = useState(false);
-      const [showInfo, setShowInfo] = useState(false);
-      const [showAdrenalinInfo, setShowAdrenalinInfo] = useState(false);
-      const [showAmiodaronInfo, setShowAmiodaronInfo] = useState(false);
-      const [lastShock, setLastShock] = useState(null);
-      const [lastAdrenalin, setLastAdrenalin] = useState(null);
-      const [lastAmiodaron, setLastAmiodaron] = useState(null);
-      const [shockCount, setShockCount] = useState(0);
+const Pause = (props) => (
+  <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="6" y="4" width="4" height="16"/>
+    <rect x="14" y="4" width="4" height="16"/>
+  </svg>
+);
 
-      const rhythms = [
-        { label: 'Kammerflimmern (VF)', type: 'vf' },
-        { label: 'Kammertachykardie (VT)', type: 'vt' },
-        { label: 'Asystolie', type: 'asystole' },
-        { label: 'PEA', type: 'pea' },
-      ];
+const RotateCcw = (props) => (
+  <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="1 4 1 10 7 10"/>
+    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+  </svg>
+);
 
-      const otherEvents = [
-        { label: 'Intubation', type: 'intubation' },
-        { label: 'Larynxmaske', type: 'larynxmask' },
-        { label: 'LUCAS o.ä.', type: 'lucas' },
-        { label: 'ECMO', type: 'ecmo' },
-        { label: 'Abbruch der Reanimation', type: 'abort' },
-        { label: 'Vektor-Change', type: 'vector' },
-      ];
+const Activity = (props) => (
+  <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+  </svg>
+);
 
-      const eventButtons = [
-        { label: 'Rhythmuskontrolle', icon: Activity, color: 'bg-blue-500', type: 'rhythm', hasSubmenu: true, submenuItems: rhythms },
-        { label: 'Schock abgegeben', icon: Zap, color: 'bg-red-500', type: 'shock', tracked: true },
-        { label: 'Adrenalin', icon: Syringe, color: 'bg-green-500', type: 'adrenalin', tracked: true, hasInfo: true },
-        { label: 'Amiodaron', icon: Syringe, color: 'bg-purple-500', type: 'amiodaron', tracked: true, hasInfo: true },
-        { label: 'Ereignisse', icon: Activity, color: 'bg-orange-500', type: 'events', hasSubmenu: true, submenuItems: otherEvents, noMainLog: true },
-        { label: 'ROSC', icon: Heart, color: 'bg-pink-500', type: 'rosc' },
-      ];
+const Zap = (props) => (
+  <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+  </svg>
+);
 
-      useEffect(() => {
-        let interval;
-        if (isRunning) {
-          interval = setInterval(() => {
-            setTime(prevTime => prevTime + 1);
-          }, 1000);
-        }
-        return () => clearInterval(interval);
-      }, [isRunning]);
+const Syringe = (props) => (
+  <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="m18 2 4 4"/>
+    <path d="m17 7 3-3"/>
+    <path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/>
+    <path d="m9 11 4 4"/>
+    <path d="m5 19-3 3"/>
+    <path d="m14 4 6 6"/>
+  </svg>
+);
 
-      const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
-      };
+const Heart = (props) => (
+  <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+  </svg>
+);
 
-      const getTimeSince = (lastTime) => {
-        if (lastTime === null) return null;
-        return time - lastTime;
-      };
+const Info = (props) => (
+  <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="12" y1="16" x2="12" y2="12"/>
+    <line x1="12" y1="8" x2="12.01" y2="8"/>
+  </svg>
+);
 
-      const playBeep = () => {
-        try {
-          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-          const oscillator = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
+// ========== MAIN APP ==========
+function App() {
+  // State Management
+  const [running, setRunning] = useState(false);
+  const [time, setTime] = useState(0);
+  const [events, setEvents] = useState([]);
+  const [rhythmOpen, setRhythmOpen] = useState(false);
+  const [eventsOpen, setEventsOpen] = useState(false);
+  const [showHsHits, setShowHsHits] = useState(false);
+  const [showMeds, setShowMeds] = useState(false);
+  const [showAdrenalinInfo, setShowAdrenalinInfo] = useState(false);
+  const [showAmiodaronInfo, setShowAmiodaronInfo] = useState(false);
+  const [showStartTime, setShowStartTime] = useState(false);
+  const [startTimeInput, setStartTimeInput] = useState('');
+  const [lastShock, setLastShock] = useState(null);
+  const [lastAdrenalin, setLastAdrenalin] = useState(null);
+  const [lastAmiodaron, setLastAmiodaron] = useState(null);
+  const [lastRhythm, setLastRhythm] = useState(null);
+  const [shockCount, setShockCount] = useState(0);
+  const [adrenalinCount, setAdrenalinCount] = useState(0);
+  const [amiodaronCount, setAmiodaronCount] = useState(0);
+  const [pocusState, setPocusState] = useState({completed: false, time: null});
+  const [bgaState, setBgaState] = useState({completed: false, time: null});
+  const [kapnoState, setKapnoState] = useState({completed: false});
+
+  // Data Configuration
+  const rhythmTypes = [
+    {label: 'Kammerflimmern (VF)', type: 'vf', shockable: true},
+    {label: 'Kammertachykardie (VT)', type: 'vt', shockable: true},
+    {label: 'Asystolie', type: 'asystole', shockable: false},
+    {label: 'PEA', type: 'pea', shockable: false}
+  ];
+
+  const otherEvents = [
+    {label: 'Intubation', type: 'intubation'},
+    {label: 'Larynxmaske', type: 'larynxmask'},
+    {label: 'LUCAS©/AutoPulse©/corpuls©', type: 'lucas'},
+    {label: 'ECMO', type: 'ecmo'},
+    {label: 'Herzkatheter', type: 'cath'},
+    {label: 'Vektor-Change', type: 'vector'},
+    {label: 'Abbruch der Reanimation', type: 'abort'}
+  ];
+
+  const actionButtons = [
+    {
+      label: 'Rhythmuskontrolle',
+      icon: Activity,
+      color: 'bg-blue-500',
+      type: 'rhythm',
+      submenu: rhythmTypes,
+      trackable: true
+    },
+    {
+      label: 'Schock abgegeben',
+      icon: Zap,
+      color: 'bg-red-500',
+      type: 'shock',
+      trackable: true
+    },
+    {
+      label: 'Adrenalin',
+      icon: Syringe,
+      color: 'bg-green-500',
+      type: 'adrenalin',
+      trackable: true,
+      hasInfo: true
+    },
+    {
+      label: 'Amiodaron',
+      icon: Syringe,
+      color: 'bg-purple-500',
+      type: 'amiodaron',
+      trackable: true,
+      hasInfo: true
+    },
+    {
+      label: 'Ereignisse',
+      icon: Activity,
+      color: 'bg-orange-500',
+      type: 'events',
+      submenu: otherEvents,
+      noLog: true
+    },
+    {
+      label: 'ROSC',
+      icon: Heart,
+      color: 'bg-pink-500',
+      type: 'rosc'
+    }
+  ];
+
+  // Timer Effect
+  useEffect(() => {
+    let interval;
+    if (running) {
+      interval = setInterval(() => {
+        setTime(prevTime => {
+          const newTime = prevTime + 1;
           
-          oscillator.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-          
-          oscillator.frequency.value = 800;
-          oscillator.type = 'sine';
-          
-          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-          
-          oscillator.start(audioContext.currentTime);
-          oscillator.stop(audioContext.currentTime + 0.1);
-        } catch (e) {
-          console.log('Audio not available');
-        }
-      };
-
-      const addEvent = (eventType, label) => {
-        const newEvent = {
-          id: Date.now() + Math.random(),
-          type: eventType,
-          label: label,
-          time: time,
-          timestamp: new Date().toLocaleTimeString('de-DE')
-        };
-        setEvents(prev => [newEvent, ...prev]);
-        playBeep();
-        
-        if (eventType === 'shock') {
-          setLastShock(time);
-          setShockCount(prev => prev + 1);
-        }
-        if (eventType === 'adrenalin') setLastAdrenalin(time);
-        if (eventType === 'amiodaron') setLastAmiodaron(time);
-      };
-
-      const deleteEvent = (eventId) => {
-        setEvents(prev => prev.filter(event => event.id !== eventId));
-      };
-
-      const handleSubmenuSelect = (item, menuType) => {
-        addEvent(item.type, item.label);
-        if (menuType === 'rhythm') setShowRhythmMenu(false);
-        if (menuType === 'events') setShowEventsMenu(false);
-      };
-
-      const toggleSubmenu = (menuType) => {
-        if (menuType === 'rhythm') {
-          setShowRhythmMenu(!showRhythmMenu);
-        } else if (menuType === 'events') {
-          setShowEventsMenu(!showEventsMenu);
-        }
-      };
-
-      const reset = () => {
-        if (window.confirm('Timer und alle Events zurücksetzen?')) {
-          setIsRunning(false);
-          setTime(0);
-          setEvents([]);
-          setLastShock(null);
-          setLastAdrenalin(null);
-          setLastAmiodaron(null);
-          setShockCount(0);
-          setShowRhythmMenu(false);
-          setShowEventsMenu(false);
-          setShowAdrenalinInfo(false);
-          setShowAmiodaronInfo(false);
-        }
-      };
-
-      const toggleTimer = () => {
-        if (!isRunning) {
-          const startEvent = {
-            id: Date.now() + Math.random(),
-            type: 'start',
-            label: 'Reanimation gestartet',
-            time: time,
-            timestamp: new Date().toLocaleTimeString('de-DE')
-          };
-          setEvents(prev => [startEvent, ...prev]);
-          playBeep();
-        }
-        setIsRunning(!isRunning);
-      };
-
-      const handleEnd = () => {
-        if (window.confirm('Reanimation beenden? Der Timer wird gestoppt.')) {
-          setIsRunning(false);
-          
-          if (events.length > 0 && window.confirm('Ereignis-Log als PDF exportieren?')) {
-            generatePDF();
+          // Reset POCUS after 10 minutes
+          if (pocusState.completed && pocusState.time !== null && newTime - pocusState.time >= 600) {
+            setPocusState({completed: false, time: null});
           }
+          
+          // Reset BGA after 10 minutes
+          if (bgaState.completed && bgaState.time !== null && newTime - bgaState.time >= 600) {
+            setBgaState({completed: false, time: null});
+          }
+          
+          return newTime;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [running, pocusState, bgaState]);
+
+  // Wake Lock Effect
+  useEffect(() => {
+    let wakeLock = null;
+    
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator && running) {
+          wakeLock = await navigator.wakeLock.request('screen');
         }
-      };
+      } catch (err) {
+        console.error('Wake Lock error:', err);
+      }
+    };
 
-      const generatePDF = () => {
-        const printWindow = window.open('', '_blank');
-        const htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reanimations-Protokoll</title><style>@page { size: A4 portrait; margin: 20mm; } body { font-family: Arial, sans-serif; margin: 0; padding: 20px; } h1 { font-size: 24px; margin-bottom: 10px; } .meta { color: #666; margin-bottom: 20px; font-size: 14px; } table { width: 100%; border-collapse: collapse; margin-top: 20px; } th, td { border: 1px solid #333; padding: 8px; text-align: left; } th { background-color: #f0f0f0; font-weight: bold; } .time-col { width: 100px; font-weight: bold; } .timestamp-col { width: 100px; } @media print { body { margin: 0; } button { display: none; } }</style></head><body><h1>Reanimations-Protokoll</h1><div class="meta"><p><strong>Datum:</strong> ' + new Date().toLocaleDateString('de-DE') + '</p><p><strong>Gesamtdauer:</strong> ' + formatTime(time) + '</p><p><strong>Anzahl Ereignisse:</strong> ' + events.length + '</p></div><table><thead><tr><th class="time-col">Zeit (MM:SS)</th><th class="timestamp-col">Uhrzeit</th><th>Ereignis</th></tr></thead><tbody>' + events.slice().reverse().map(event => '<tr><td class="time-col">' + formatTime(event.time) + '</td><td class="timestamp-col">' + event.timestamp + '</td><td>' + event.label + '</td></tr>').join('') + '</tbody></table><div style="margin-top: 40px; text-align: center;"><button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">PDF speichern / Drucken</button></div></body></html>';
-        
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
-      };
+    const releaseWakeLock = async () => {
+      if (wakeLock) {
+        try {
+          await wakeLock.release();
+          wakeLock = null;
+        } catch (err) {
+          console.error('Wake Lock release error:', err);
+        }
+      }
+    };
 
-      const shouldShowAmiodaronWarning = shockCount === 3 || shockCount === 5;
-      const shouldShowAdrenalinWarning = shockCount === 3;
-
-      return (
-        <div className="min-h-screen bg-gray-900 text-white p-4">
-          <div className="max-w-md mx-auto">
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold mb-2">Reanimations-Timer</h1>
-            </div>
-
-            <div className="bg-gray-800 rounded-lg p-8 mb-6 text-center">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1"></div>
-                <div className="text-7xl font-mono font-bold tracking-wider">
-                  {formatTime(time)}
-                </div>
-                <div className="flex-1 flex justify-end">
-                  <button
-                    onClick={handleEnd}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
-                  >
-                    ENDE
-                  </button>
-                </div>
-              </div>
-              
-              <div className="flex gap-3 justify-center">
-                <button
-                  onClick={toggleTimer}
-                  className={'flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-lg transition-colors ' + (isRunning ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700')}
-                >
-                  {isRunning ? <Pause size={24} /> : <Play size={24} />}
-                  {isRunning ? 'Pause' : 'Start'}
-                </button>
-                
-                <button
-                  onClick={reset}
-                  className="flex items-center gap-2 px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold text-lg transition-colors"
-                >
-                  <RotateCcw size={24} />
-                  Reset
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-gray-800 rounded-lg p-4 mb-6">
-              <h2 className="text-lg font-semibold mb-4">Ereignisse dokumentieren</h2>
-              <div className="grid grid-cols-1 gap-3">
-                {eventButtons.map((btn) => (
-                  <div key={btn.type}>
-                    {btn.hasSubmenu ? (
-                      <div>
-                        {btn.noMainLog ? (
-                          <button
-                            onClick={() => toggleSubmenu(btn.type)}
-                            className={'w-full flex items-center justify-between px-4 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90 ' + btn.color}
-                          >
-                            <div className="flex items-center gap-3">
-                              <btn.icon size={20} />
-                              {btn.label}
-                            </div>
-                            <span className="text-xl">{(btn.type === 'events' && showEventsMenu) ? '▲' : '▼'}</span>
-                          </button>
-                        ) : (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => addEvent(btn.type, btn.label)}
-                              className={'flex-1 flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90 ' + btn.color}
-                            >
-                              <btn.icon size={20} />
-                              {btn.label}
-                            </button>
-                            <button
-                              onClick={() => toggleSubmenu(btn.type)}
-                              className={'px-4 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90 border-l-2 border-black/20 ' + btn.color}
-                            >
-                              <span className="text-xl">{(btn.type === 'rhythm' && showRhythmMenu) ? '▲' : '▼'}</span>
-                            </button>
-                          </div>
-                        )}
-                        {((btn.type === 'rhythm' && showRhythmMenu) || (btn.type === 'events' && showEventsMenu)) && (
-                          <div className="mt-2 ml-4 space-y-2">
-                            {btn.submenuItems.map((item) => (
-                              <button
-                                key={item.type}
-                                onClick={() => handleSubmenuSelect(item, btn.type)}
-                                className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                              >
-                                {item.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => addEvent(btn.type, btn.label)}
-                          className={'flex-1 flex items-center justify-between px-4 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90 ' + btn.color}
-                        >
-                          <div className="flex items-center gap-3">
-                            <btn.icon size={20} />
-                            {btn.label}
-                            {btn.type === 'amiodaron' && shouldShowAmiodaronWarning && (
-                              <span className="flex items-center gap-1 text-sm font-bold text-yellow-300">
-                                <Zap size={14} />
-                                <span>{shockCount}×</span>
-                                <span className="text-yellow-400">!</span>
-                              </span>
-                            )}
-                            {btn.type === 'adrenalin' && shouldShowAdrenalinWarning && (
-                              <span className="flex items-center gap-1 text-sm font-bold text-yellow-300">
-                                <Zap size={14} />
-                                <span>3×</span>
-                                <span className="text-yellow-400">!</span>
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-3">
-                            {btn.type === 'shock' && shockCount > 0 && (
-                              <div className="flex items-center gap-1 text-sm font-bold">
-                                <Zap size={16} />
-                                <span>{shockCount}</span>
-                              </div>
-                            )}
-                            {btn.tracked && (
-                              <div className="text-sm font-mono">
-                                {btn.type === 'shock' && lastShock !== null && (
-                                  <span>{formatTime(getTimeSince(lastShock))}</span>
-                                )}
-                                {btn.type === 'adrenalin' && lastAdrenalin !== null && (
-                                  <span>{formatTime(getTimeSince(lastAdrenalin))}</span>
-                                )}
-                                {btn.type === 'amiodaron' && lastAmiodaron !== null && (
-                                  <span>{formatTime(getTimeSince(lastAmiodaron))}</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                        {btn.hasInfo && (
-                          <button
-                            onClick={() => {
-                              if (btn.type === 'adrenalin') setShowAdrenalinInfo(!showAdrenalinInfo);
-                              if (btn.type === 'amiodaron') setShowAmiodaronInfo(!showAmiodaronInfo);
-                            }}
-                            className="px-3 py-3 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors"
-                          >
-                            <Info size={18} />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    {btn.type === 'adrenalin' && showAdrenalinInfo && (
-                      <div className="mt-2 p-3 bg-gray-700 rounded-lg text-sm text-gray-300">
-                        <p className="font-semibold text-white mb-1">Adrenalin 1mg:</p>
-                        <p className="text-xs">• Nicht-defibrillierbar (Asystolie/PEA): ASAP, dann alle 4 Min</p>
-                        <p className="text-xs">• Defibrillierbar (VF/VT): nach 3. Schock, dann alle 4 Min</p>
-                      </div>
-                    )}
-                    {btn.type === 'amiodaron' && showAmiodaronInfo && (
-                      <div className="mt-2 p-3 bg-gray-700 rounded-lg text-sm text-gray-300">
-                        <p className="font-semibold text-white mb-1">Amiodaron:</p>
-                        <p className="text-xs">• 300mg nach 3. Schock</p>
-                        <p className="text-xs">• 150mg nach 5. Schock</p>
-                        <p className="text-xs mt-1">(Alternative: Lidocain 100mg/50mg)</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-center mb-6">
-              <button
-                onClick={() => setShowInfo(!showInfo)}
-                className="w-12 h-12 rounded-full bg-gray-600 hover:bg-gray-500 flex items-center justify-center transition-colors"
-                title="Informationen"
-              >
-                <Info size={24} />
-              </button>
-            </div>
-
-            {showInfo && (
-              <div className="bg-gray-800 rounded-lg p-4 mb-6 max-h-96 overflow-y-auto">
-                <h2 className="text-lg font-semibold mb-4">ℹ️ Information</h2>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="space-y-2 text-gray-300">
-                    <p className="font-semibold text-white mb-2">4 Hs:</p>
-                    <div className="space-y-2">
-                      <div>
-                        <p className="text-xs font-semibold text-yellow-300">Hypoxie</p>
-                        <p className="text-xs">→ Beatmung mit FiO₂ 100%</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-yellow-300">Hypovolämie</p>
-                        <p className="text-xs">→ 500ml Volumen (VEL), dann nach Bedarf / Klinik</p>
-                        <p className="text-xs">→ Blutung stoppen, Massivtransfusion, Gerinnungstherapie</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-yellow-300">Hyperkaliämie</p>
-                        <p className="text-xs">→ Calciumgluconat 10% 30ml iv. oder Calciumchlorid 10% 10ml iv.</p>
-                        <p className="text-xs">→ Natriumbikarbonat 8,4% 50 mmol (=ml) iv. KI</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-yellow-300">Hypokaliämie</p>
-                        <p className="text-xs">→ Kaliumchlorid 20mmol über 2-3 Min iv., danach 10mmol über 2 Min iv.</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-yellow-300">Hypoglykämie</p>
-                        <p className="text-xs">→ Glukose 40% 30ml iv. (12g)</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-yellow-300">Hypothermie</p>
-                        <p className="text-xs">→ Temperaturkontrolle, eCPR erwägen</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2 text-gray-300">
-                    <p className="font-semibold text-white mb-2">HITS:</p>
-                    <div className="space-y-2">
-                      <div>
-                        <p className="text-xs font-semibold text-red-300">Herzbeuteltamponade</p>
-                        <p className="text-xs">→ Entlastungspunktion (bei Trauma ggf. Thorakotomie)</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-red-300">Intoxikation</p>
-                        <p className="text-xs">→ Antidot falls verfügbar; eCPR erwägen</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-red-300">Thrombose (LAE/OMI)</p>
-                        <p className="text-xs">→ V.a. LAE: Lyse (dann mind. 60-90min. CPR)</p>
-                        <p className="text-xs">→ V.a. OMI (Myokardinfarkt): Evtl. unter laufender CPR Herzkatheter</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-red-300">Spannungspneumothorax</p>
-                        <p className="text-xs">→ Entlastungspunktion, dann Drainage</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {events.length > 0 && (
-              <div className="bg-gray-800 rounded-lg p-4">
-                <h2 className="text-lg font-semibold mb-4">Ereignis-Log</h2>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {events.map((event) => (
-                    <div key={event.id} className="relative">
-                      <div className="bg-gray-700 rounded p-3 flex justify-between items-center">
-                        <div className="flex-1">
-                          <div className="font-semibold">{event.label}</div>
-                          <div className="text-sm text-gray-400">{event.timestamp}</div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-xl font-mono font-bold text-blue-400">
-                            {formatTime(event.time)}
-                          </div>
-                          <button
-                            onClick={() => deleteEvent(event.id)}
-                            className="p-1 hover:bg-red-600 rounded transition-colors"
-                            title="Löschen"
-                          >
-                            <span className="text-red-400 hover:text-white text-xl leading-none">×</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      );
+    if (running) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
     }
 
-    ReactDOM.render(<ReanimationTimer />, document.getElementById('root'));
-  </script>
+    return () => {
+      releaseWakeLock();
+    };
+  }, [running]);
+
+  // Helper Functions
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  const timeSince = (lastTime) => {
+    return lastTime === null ? null : time - lastTime;
+  };
+
+  const playBeep = () => {
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.1);
+    } catch (err) {
+      console.error('Beep error:', err);
+    }
+  };
+
+  // Event Functions
+  const addEvent = (eventType, eventLabel) => {
+    const newEvent = {
+      id: Date.now() + Math.random(),
+      type: eventType,
+      label: eventLabel,
+      time: time,
+      timestamp: new Date().toLocaleTimeString('de-DE')
+    };
+    
+    setEvents(prevEvents => [newEvent, ...prevEvents]);
+    playBeep();
+    
+    // Update tracking states
+    if (eventType === 'shock') {
+      setLastShock(time);
+      setShockCount(prev => prev + 1);
+    }
+    if (eventType === 'adrenalin') {
+      setLastAdrenalin(time);
+      setAdrenalinCount(prev => prev + 1);
+    }
+    if (eventType === 'amiodaron') {
+      setLastAmiodaron(time);
+      setAmiodaronCount(prev => prev + 1);
+    }
+    if (['rhythm', 'vf', 'vt', 'asystole', 'pea', 'sr', 'vhf'].includes(eventType)) {
+      setLastRhythm(time);
+    }
+  };
+
+  const deleteEvent = (eventId) => {
+    setEvents(prevEvents => prevEvents.filter(e => e.id !== eventId));
+  };
+
+  const selectSubmenuItem = (item, menuType) => {
+    // Für Rhythmus-Items nur den spezifischen Typ loggen, nicht "rhythm" allgemein
+    if (menuType === 'rhythm') {
+      const newEvent = {
+        id: Date.now() + Math.random(),
+        type: item.type,
+        label: item.label,
+        time: time,
+        timestamp: new Date().toLocaleTimeString('de-DE')
+      };
+      setEvents(prevEvents => [newEvent, ...prevEvents]);
+      playBeep();
+      
+      // Nur lastRhythm setzen, aber nicht neu auf die aktuelle Zeit
+      // (wird bereits durch das Klicken auf Rhythmuskontrolle gesetzt)
+    } else {
+      addEvent(item.type, item.label);
+    }
+    
+    // Auto-add ROSC for SR or VHF
+    if (item.type === 'sr' || item.type === 'vhf') {
+      addEvent('rosc', 'ROSC');
+    }
+    
+    // Close submenus
+    if (menuType === 'rhythm') {
+      setRhythmOpen(false);
+    }
+    if (menuType === 'events') {
+      setEventsOpen(false);
+    }
+  };
+
+  const toggleSubmenu = (menuType) => {
+    if (menuType === 'rhythm') {
+      setRhythmOpen(!rhythmOpen);
+    } else if (menuType === 'events') {
+      setEventsOpen(!eventsOpen);
+    }
+  };
+
+  // Control Functions
+  const resetAll = () => {
+    if (window.confirm('Timer und alle Events zurücksetzen?')) {
+      setRunning(false);
+      setTime(0);
+      setEvents([]);
+      setLastShock(null);
+      setLastAdrenalin(null);
+      setLastAmiodaron(null);
+      setLastRhythm(null);
+      setShockCount(0);
+      setAdrenalinCount(0);
+      setAmiodaronCount(0);
+      setRhythmOpen(false);
+      setEventsOpen(false);
+      setShowHsHits(false);
+      setShowMeds(false);
+      setShowAdrenalinInfo(false);
+      setShowAmiodaronInfo(false);
+      setShowStartTime(false);
+      setStartTimeInput('');
+      setPocusState({completed: false, time: null});
+      setBgaState({completed: false, time: null});
+      setKapnoState({completed: false});
+    }
+  };
+
+  const toggleTimer = () => {
+    if (!running) {
+      if (showStartTime && startTimeInput) {
+        // Parse MM:SS format
+        const parts = startTimeInput.split(':');
+        let seconds = 0;
+        
+        if (parts.length === 2) {
+          // MM:SS format
+          const mins = parseInt(parts[0]) || 0;
+          const secs = parseInt(parts[1]) || 0;
+          seconds = mins * 60 + secs;
+        } else if (parts.length === 1) {
+          // Only minutes provided
+          const mins = parseInt(parts[0]) || 0;
+          seconds = mins * 60;
+        }
+        
+        setTime(seconds);
+        addEvent('start', `Timer gestartet (Start: ${formatTime(seconds)})`);
+        setShowStartTime(false);
+      } else {
+        addEvent('start', 'Timer gestartet');
+      }
+    }
+    setRunning(!running);
+  };
+
+  const handlePocus = () => {
+    addEvent('pocus', 'POCUS durchgeführt');
+    setPocusState({completed: true, time: time});
+  };
+
+  const handleBga = () => {
+    addEvent('bga', 'BGA');
+    setBgaState({completed: true, time: time});
+  };
+
+  const handleKapnometrie = () => {
+    addEvent('kapnometrie', 'Kapnometrie durchgeführt');
+    setKapnoState({completed: true});
+  };
+
+  const toggleHsHits = () => {
+    setShowHsHits(!showHsHits);
+    if (!showHsHits) setShowMeds(false);
+  };
+
+  const toggleMeds = () => {
+    setShowMeds(!showMeds);
+    if (!showMeds) setShowHsHits(false);
+  };
+
+  const endResuscitation = () => {
+    if (window.confirm('Reanimation beenden? Der Timer wird gestoppt.')) {
+      setRunning(false);
+      if (events.length > 0 && window.confirm('Ereignis-Log als PDF exportieren?')) {
+        exportToPDF();
+      }
+    }
+  };
+
+  const exportToPDF = () => {
+    const pdfWindow = window.open('', '_blank');
+    const pdfContent = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Reanimations-Protokoll</title>
+<style>
+@page {
+  size: A4 portrait;
+  margin: 20mm;
+}
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+}
+h1 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+.meta {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+th, td {
+  border: 1px solid #333;
+  padding: 8px;
+  text-align: left;
+}
+th {
+  background: #f0f0f0;
+  font-weight: bold;
+}
+.time-col {
+  width: 100px;
+  font-weight: bold;
+}
+.timestamp-col {
+  width: 100px;
+}
+@media print {
+  body {
+    margin: 0;
+  }
+  button {
+    display: none;
+  }
+}
+</style>
+</head>
+<body>
+<h1>Reanimations-Protokoll</h1>
+<div class="meta">
+  <p><strong>Datum:</strong> ${new Date().toLocaleDateString('de-DE')}</p>
+  <p><strong>Gesamtdauer:</strong> ${formatTime(time)}</p>
+  <p><strong>Anzahl Ereignisse:</strong> ${events.length}</p>
+</div>
+<table>
+  <thead>
+    <tr>
+      <th class="time-col">Zeit (MM:SS)</th>
+      <th class="timestamp-col">Uhrzeit</th>
+      <th>Ereignis</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${events.slice().reverse().map(event => `
+      <tr>
+        <td class="time-col">${formatTime(event.time)}</td>
+        <td class="timestamp-col">${event.timestamp}</td>
+        <td>${event.label}</td>
+      </tr>
+    `).join('')}
+  </tbody>
+</table>
+<div style="margin-top: 40px; text-align: center;">
+  <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #3b82f6; color: white; border: none; border-radius: 5px;">
+    PDF speichern / Drucken
+  </button>
+</div>
+</body>
+</html>`;
+    
+    pdfWindow.document.write(pdfContent);
+    pdfWindow.document.close();
+  };
+
+  // Computed Values
+  const warnAdrenalin = shockCount === 3;
+  const warnAmiodaron = shockCount === 3 || shockCount === 5;
+  const pocusBig = time >= 480 && !pocusState.completed;
+  const bgaBig = time >= 480 && !bgaState.completed;
+  const kapnoBig = time >= 360 && !kapnoState.completed; // Ab 6 Minuten
+  const pocusElapsed = pocusState.completed && pocusState.time !== null ? time - pocusState.time : null;
+  const bgaElapsed = bgaState.completed && bgaState.time !== null ? time - bgaState.time : null;
+  
+  // Blink-Logik für Rhythmuskontrolle (ab 2 Minuten)
+  const rhythmBlink = lastRhythm !== null && (time - lastRhythm) >= 120;
+  
+  // Blink-Logik für Adrenalin (ab 4 Minuten)
+  const adrenalinBlink = lastAdrenalin !== null && (time - lastAdrenalin) >= 240;
+
+  // ========== RENDER ==========
+  return (
+    <div className="min-h-screen bg-gray-900 text-white p-4">
+      <div className="max-w-md mx-auto">
+
+        {/* Header */}
+        <div className="text-center mb-6">
+          <div className="flex items-end justify-between">
+            <div className="flex-1" />
+            <h1 className="text-2xl font-bold">Reanimations-Timer</h1>
+            <div className="flex-1 flex justify-end items-end">
+              <p className="text-xs text-gray-400">by Til Sonntag</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Timer Display */}
+        <div className="bg-gray-800 rounded-lg p-8 pb-16 mb-6 text-center relative">
+          {/* ENDE Button in rechter oberer Ecke */}
+          <button 
+            onClick={endResuscitation} 
+            className="absolute top-3 right-3 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
+          >
+            ENDE
+          </button>
+          
+          <div className="flex justify-center items-start mb-4">
+            <div className="text-7xl font-mono font-bold tracking-wider">
+              {formatTime(time)}
+            </div>
+          </div>
+          
+          {/* Control Buttons */}
+          <div className="flex gap-3 justify-center">
+            <button 
+              onClick={toggleTimer} 
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-lg transition-colors ${
+                running ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'
+              }`}
+            >
+              {running ? <Pause size={24} /> : <Play size={24} />}
+              {running ? 'Pause' : 'Start'}
+            </button>
+            
+            {!running && time === 0 && (
+              <button 
+                onClick={() => setShowStartTime(!showStartTime)} 
+                className="px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-lg transition-colors"
+              >
+                ⏱️
+              </button>
+            )}
+            
+            <button 
+              onClick={resetAll} 
+              className="flex items-center gap-2 px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold text-lg transition-colors"
+            >
+              <RotateCcw size={24} />
+              Reset
+            </button>
+          </div>
+          
+          {/* Start Time Input */}
+          {showStartTime && (
+            <div className="mt-4 flex gap-2 justify-center items-center">
+              <label className="text-sm">Startzeit (MM:SS):</label>
+              <input 
+                type="text" 
+                value={startTimeInput} 
+                onChange={(e) => {
+                  let value = e.target.value.replace(/[^\d]/g, ''); // Nur Zahlen
+                  if (value.length >= 2) {
+                    value = value.slice(0, 2) + ':' + value.slice(2, 4);
+                  }
+                  setStartTimeInput(value);
+                }}
+                className="w-24 px-3 py-2 bg-gray-700 rounded text-white text-center font-mono" 
+                placeholder="00:00"
+                maxLength="5"
+              />
+            </div>
+          )}
+          
+          {/* POCUS Button */}
+          <button 
+            onClick={handlePocus} 
+            className={`absolute bottom-3 left-3 px-2 py-1 text-xs bg-purple-600 hover:bg-purple-700 rounded transition-colors ${
+              pocusBig ? 'animate-pulse text-base px-4 py-2' : ''
+            }`}
+          >
+            {pocusBig ? 'POCUS?' : 'POCUS'}
+            {!pocusBig && pocusElapsed !== null && (
+              <span className="font-mono ml-1">({formatTime(pocusElapsed)})</span>
+            )}
+          </button>
+          
+          {/* Kapnometrie Button */}
+          <button 
+            onClick={handleKapnometrie} 
+            className={`absolute bottom-3 left-1/2 transform -translate-x-1/2 px-3 py-1 text-xs bg-purple-600 hover:bg-purple-700 rounded transition-colors ${
+              kapnoBig ? 'animate-pulse text-base px-4 py-2' : ''
+            }`}
+          >
+            Kapno{!kapnoState.completed && '?'}
+          </button>
+          
+          {/* BGA Button */}
+          <button 
+            onClick={handleBga} 
+            className={`absolute bottom-3 right-3 px-2 py-1 text-xs bg-purple-600 hover:bg-purple-700 rounded transition-colors ${
+              bgaBig ? 'animate-pulse text-base px-4 py-2' : ''
+            }`}
+          >
+            {bgaBig ? 'BGA?' : 'BGA'}
+            {!bgaBig && bgaElapsed !== null && (
+              <span className="font-mono ml-1">({formatTime(bgaElapsed)})</span>
+            )}
+          </button>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="bg-gray-800 rounded-lg p-4 mb-6">
+          <h2 className="text-lg font-semibold mb-4">Ereignisse dokumentieren</h2>
+          <div className="grid grid-cols-1 gap-3">
+            {actionButtons.map(button => (
+              <div key={button.type}>
+                {button.submenu ? (
+                  <div>
+                    {button.noLog ? (
+                      <button 
+                        onClick={() => toggleSubmenu(button.type)} 
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90 ${button.color}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <button.icon size={20} />
+                          {button.label}
+                        </div>
+                        <span className="text-xl">
+                          {(button.type === 'events' && eventsOpen) ? '▲' : '▼'}
+                        </span>
+                      </button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
+                            addEvent(button.type, button.label);
+                            toggleSubmenu(button.type);
+                          }} 
+                          className={`flex-1 flex items-center justify-between px-4 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90 ${button.color} ${
+                            button.type === 'rhythm' && rhythmBlink ? 'gentle-blink' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <button.icon size={20} />
+                            {button.label}
+                          </div>
+                          {button.trackable && lastRhythm !== null && (
+                            <div className="text-sm font-mono">
+                              {formatTime(timeSince(lastRhythm))}
+                            </div>
+                          )}
+                        </button>
+                        <button 
+                          onClick={() => toggleSubmenu(button.type)} 
+                          className={`px-4 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90 border-l-2 border-black/20 ${button.color}`}
+                        >
+                          <span className="text-xl">
+                            {(button.type === 'rhythm' && rhythmOpen) ? '▲' : '▼'}
+                          </span>
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* Submenu */}
+                    {((button.type === 'rhythm' && rhythmOpen) || (button.type === 'events' && eventsOpen)) && (
+                      <div className="mt-2 ml-4 space-y-2">
+                        {button.type === 'rhythm' ? (
+                          <>
+                            {button.submenu.map(item => (
+                              <button 
+                                key={item.type} 
+                                onClick={() => selectSubmenuItem(item, button.type)} 
+                                className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-between"
+                              >
+                                <span>{item.label}</span>
+                                {item.shockable && (
+                                  <Zap size={14} className="text-yellow-400" />
+                                )}
+                              </button>
+                            ))}
+                            <div className="border-t border-gray-600 mt-2 pt-2" />
+                            <div className="grid grid-cols-2 gap-2">
+                              <button 
+                                onClick={() => selectSubmenuItem({label: 'SR', type: 'sr'}, button.type)} 
+                                className="text-left px-4 py-2 bg-pink-900/30 hover:bg-pink-900/50 rounded-lg transition-colors"
+                              >
+                                SR
+                              </button>
+                              <button 
+                                onClick={() => selectSubmenuItem({label: 'VHF', type: 'vhf'}, button.type)} 
+                                className="text-left px-4 py-2 bg-pink-900/30 hover:bg-pink-900/50 rounded-lg transition-colors"
+                              >
+                                VHF
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          button.submenu.map(item => (
+                            <button 
+                              key={item.type} 
+                              onClick={() => selectSubmenuItem(item, button.type)} 
+                              className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                            >
+                              {item.label}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => addEvent(button.type, button.label)} 
+                      className={`flex-1 flex items-center justify-between px-4 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90 ${button.color} ${
+                        button.type === 'adrenalin' && adrenalinBlink ? 'gentle-blink' : ''
+                      } ${
+                        button.type === 'amiodaron' && amiodaronCount >= 2 ? 'opacity-50' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <button.icon size={20} />
+                        {button.label}
+                        
+                        {/* Amiodaron Dosierung */}
+                        {button.type === 'amiodaron' && (
+                          <span className="text-xs text-gray-300">
+                            {amiodaronCount === 0 ? '300mg' : '150mg'}
+                          </span>
+                        )}
+                        
+                        {/* Adrenalin Dosierung */}
+                        {button.type === 'adrenalin' && (
+                          <span className="text-xs text-gray-300">
+                            1mg
+                          </span>
+                        )}
+                        
+                        {/* Warning Icons */}
+                        {button.type === 'amiodaron' && warnAmiodaron && (
+                          <span className="flex items-center gap-1 text-sm font-bold text-yellow-300">
+                            <Zap size={14} />
+                            <span>{shockCount}×</span>
+                            <span className="text-yellow-400">!</span>
+                          </span>
+                        )}
+                        {button.type === 'adrenalin' && warnAdrenalin && (
+                          <span className="flex items-center gap-1 text-sm font-bold text-yellow-300">
+                            <Zap size={14} />
+                            <span>3×</span>
+                            <span className="text-yellow-400">!</span>
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        {button.type === 'shock' && shockCount > 0 && (
+                          <div className="flex items-center gap-1 text-sm font-bold">
+                            <Zap size={16} />
+                            <span>{shockCount}</span>
+                          </div>
+                        )}
+                        {button.type === 'adrenalin' && adrenalinCount > 0 && (
+                          <div className="flex items-center gap-1 text-sm font-bold">
+                            <span>{adrenalinCount}×</span>
+                            <Syringe size={16} />
+                          </div>
+                        )}
+                        {button.type === 'amiodaron' && amiodaronCount > 0 && (
+                          <div className="flex items-center gap-1 text-sm font-bold">
+                            <span>{amiodaronCount}×</span>
+                            <Syringe size={16} />
+                          </div>
+                        )}
+                        {button.trackable && (
+                          <div className="text-sm font-mono">
+                            {button.type === 'shock' && lastShock !== null && (
+                              <span>{formatTime(timeSince(lastShock))}</span>
+                            )}
+                            {button.type === 'adrenalin' && lastAdrenalin !== null && (
+                              <span>{formatTime(timeSince(lastAdrenalin))}</span>
+                            )}
+                            {button.type === 'amiodaron' && lastAmiodaron !== null && (
+                              <span>{formatTime(timeSince(lastAmiodaron))}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                    
+                    {button.hasInfo && (
+                      <button 
+                        onClick={() => {
+                          if (button.type === 'adrenalin') setShowAdrenalinInfo(!showAdrenalinInfo);
+                          if (button.type === 'amiodaron') setShowAmiodaronInfo(!showAmiodaronInfo);
+                        }} 
+                        className="px-3 py-3 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors"
+                      >
+                        <Info size={18} />
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {/* Info Panels */}
+                {button.type === 'adrenalin' && showAdrenalinInfo && (
+                  <div className="mt-2 p-3 bg-gray-700 rounded-lg text-sm text-gray-300">
+                    <p className="font-semibold text-white mb-1">Adrenalin 1mg:</p>
+                    <p className="text-xs">• Nicht-defibrillierbar (Asystolie/PEA): ASAP, dann alle 4 Min</p>
+                    <p className="text-xs">• Defibrillierbar (VF/VT): nach 3. Schock, dann alle 4 Min</p>
+                  </div>
+                )}
+                
+                {button.type === 'amiodaron' && showAmiodaronInfo && (
+                  <div className="mt-2 p-3 bg-gray-700 rounded-lg text-sm text-gray-300">
+                    <p className="font-semibold text-white mb-1">Amiodaron:</p>
+                    <p className="text-xs">• 300mg nach 3. Schock</p>
+                    <p className="text-xs">• 150mg nach 5. Schock</p>
+                    <p className="text-xs mt-1">(Alternative: Lidocain 100mg/50mg)</p>
+                    <p className="text-xs mt-2 font-semibold">⚠️ Amiodaron bei Long-QT / Hyperkaliämie vermeiden!</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Info Toggle Buttons */}
+        <div className="flex justify-center gap-3 mb-6">
+          <button 
+            onClick={toggleHsHits} 
+            className="flex-1 max-w-[200px] px-4 py-3 rounded-lg bg-gray-600 hover:bg-gray-500 font-semibold transition-colors"
+          >
+            Hs & HITS
+          </button>
+          <button 
+            onClick={toggleMeds} 
+            className="flex-1 max-w-[200px] px-4 py-3 rounded-lg bg-gray-600 hover:bg-gray-500 font-semibold transition-colors"
+          >
+            Medis
+          </button>
+        </div>
+
+        {/* Hs & HITS Panel */}
+        {showHsHits && (
+          <div className="bg-gray-800 rounded-lg p-4 mb-6 max-h-96 overflow-y-auto">
+            <h2 className="text-lg font-semibold mb-4">ℹ️ Hs & HITS</h2>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="space-y-2 text-gray-300">
+                <p className="font-semibold text-white mb-2">4 Hs:</p>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs font-semibold text-yellow-300">Hypoxie</p>
+                    <p className="text-xs">→ Beatmung mit FiO₂ 100%</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-yellow-300">Hypovolämie</p>
+                    <p className="text-xs">→ 500ml Volumen (VEL), dann nach Bedarf / Klinik</p>
+                    <p className="text-xs">→ Blutung stoppen, Massivtransfusion, Gerinnungstherapie</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-yellow-300">Hyperkaliämie</p>
+                    <p className="text-xs">→ Calciumgluconat 10% 30ml iv. oder Calciumchlorid 10% 10ml iv.</p>
+                    <p className="text-xs">→ Natriumbikarbonat 8,4% 50 mmol (=ml) iv. KI</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-yellow-300">Hypokaliämie</p>
+                    <p className="text-xs">→ Kaliumchlorid 20mmol über 2-3 Min iv., danach 10mmol über 2 Min iv.</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-yellow-300">Hypoglykämie</p>
+                    <p className="text-xs">→ Glukose 40% 30ml iv. (12g)</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-yellow-300">Hypothermie</p>
+                    <p className="text-xs">→ Temperaturkontrolle, eCPR erwägen</p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2 text-gray-300">
+                <p className="font-semibold text-white mb-2">HITS:</p>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs font-semibold text-red-300">Herzbeuteltamponade</p>
+                    <p className="text-xs">→ Entlastungspunktion (bei Trauma ggf. Thorakotomie)</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-red-300">Intoxikation</p>
+                    <p className="text-xs">→ Antidot falls verfügbar; eCPR erwägen</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-red-300">Thrombose (LAE/OMI)</p>
+                    <p className="text-xs">→ V.a. LAE: Lyse (dann mind. 60-90min. CPR)</p>
+                    <p className="text-xs">→ V.a. OMI (Myokardinfarkt): Evtl. unter laufender CPR Herzkatheter</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-red-300">Spannungspneumothorax</p>
+                    <p className="text-xs">→ Entlastungspunktion, dann Drainage</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Medications Panel */}
+        {showMeds && (
+          <div className="bg-gray-800 rounded-lg p-4 mb-6 max-h-96 overflow-y-auto">
+            <h2 className="text-lg font-semibold mb-4">💊 Medikamente</h2>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <button 
+                onClick={() => addEvent('med', 'Atropin 0,5-3 mg i.v.')} 
+                className="text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              >
+                <p className="font-semibold text-white text-sm">Atropin</p>
+                <p className="text-xs text-gray-300">0,5-3 mg i.v.</p>
+                <p className="text-xs text-gray-400">Bradykardie, AV-Block</p>
+              </button>
+              
+              <button 
+                onClick={() => addEvent('med', 'Magnesiumsulfat 2 g i.v.')} 
+                className="text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              >
+                <p className="font-semibold text-white text-sm">Magnesiumsulfat</p>
+                <p className="text-xs text-gray-300">2 g i.v.</p>
+                <p className="text-xs text-gray-400">Torsade de pointes</p>
+              </button>
+              
+              <button 
+                onClick={() => addEvent('med', 'Calcium (Chlorid 10% 10ml oder Gluconat 10% 10-20ml) i.v.')} 
+                className="text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              >
+                <p className="font-semibold text-white text-sm">Calcium (Chlorid/Gluconat)</p>
+                <p className="text-xs text-gray-300">Chlorid 10% 10ml / Gluconat 10% 10-20ml</p>
+                <p className="text-xs text-gray-400">Hyperkaliämie, Ca-Antag.</p>
+              </button>
+              
+              <button 
+                onClick={() => addEvent('med', 'Kaliumchlorid 20mmol (2-3min) + 10mmol (2min)')} 
+                className="text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              >
+                <p className="font-semibold text-white text-sm">Kaliumchlorid</p>
+                <p className="text-xs text-gray-300">20mmol (2-3min) + 10mmol (2min)</p>
+                <p className="text-xs text-gray-400">Hypokaliämie</p>
+              </button>
+              
+              <button 
+                onClick={() => addEvent('med', 'Natriumbicarbonat 50 mmol i.v.')} 
+                className="text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              >
+                <p className="font-semibold text-white text-sm">Natriumbicarbonat</p>
+                <p className="text-xs text-gray-300">50 mmol i.v.</p>
+                <p className="text-xs text-gray-400">Azidose, Hyperkaliämie</p>
+              </button>
+              
+              <button 
+                onClick={() => addEvent('med', 'Glukose 40% 20-40 ml i.v.')} 
+                className="text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              >
+                <p className="font-semibold text-white text-sm">Glukose 40%</p>
+                <p className="text-xs text-gray-300">20-40 ml i.v.</p>
+                <p className="text-xs text-gray-400">Hypoglykämie</p>
+              </button>
+              
+              <button 
+                onClick={() => addEvent('med', 'Alteplase/rtPA 0,6mg/kgKG max. 50mg')} 
+                className="text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors col-span-2"
+              >
+                <p className="font-semibold text-white text-sm">Alteplase/rtPA</p>
+                <p className="text-xs text-gray-300">0,6mg/kgKG max. 50mg</p>
+                <p className="text-xs text-gray-400">Lungenembolie (dann mind. 60-90min CPR)</p>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Event Log */}
+        {events.length > 0 && (
+          <div className="bg-gray-800 rounded-lg p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Ereignis-Log</h2>
+              <button 
+                onClick={exportToPDF} 
+                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors"
+              >
+                PDF Export
+              </button>
+            </div>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {events.map(event => (
+                <div 
+                  key={event.id} 
+                  className="flex items-center justify-between px-4 py-2 bg-gray-700 rounded-lg"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-sm font-bold">
+                        {formatTime(event.time)}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {event.timestamp}
+                      </span>
+                      <span className="text-sm">
+                        {event.label}
+                      </span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => deleteEvent(event.id)} 
+                    className="px-2 py-1 text-xs bg-red-600 hover:bg-red-700 rounded transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+// Render App
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
 </body>
 </html>

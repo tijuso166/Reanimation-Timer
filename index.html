@@ -109,6 +109,7 @@ function App() {
   const [showMeds, setShowMeds] = useState(false);
   const [showAdrenalinInfo, setShowAdrenalinInfo] = useState(false);
   const [showAmiodaronInfo, setShowAmiodaronInfo] = useState(false);
+  const [showEcprInfo, setShowEcprInfo] = useState(false);
   const [showStartTime, setShowStartTime] = useState(false);
   const [startTimeInput, setStartTimeInput] = useState('');
   const [lastShock, setLastShock] = useState(null);
@@ -121,6 +122,7 @@ function App() {
   const [pocusState, setPocusState] = useState({completed: false, time: null});
   const [bgaState, setBgaState] = useState({completed: false, time: null});
   const [kapnoState, setKapnoState] = useState({completed: false});
+  const [roscActive, setRoscActive] = useState(false);
 
   // Data Configuration
   const rhythmTypes = [
@@ -310,6 +312,9 @@ function App() {
     if (['rhythm', 'vf', 'vt', 'asystole', 'pea', 'sr', 'vhf'].includes(eventType)) {
       setLastRhythm(time);
     }
+    if (eventType === 'rosc') {
+      setRoscActive(true);
+    }
   };
 
   const deleteEvent = (eventId) => {
@@ -381,6 +386,7 @@ function App() {
       setPocusState({completed: false, time: null});
       setBgaState({completed: false, time: null});
       setKapnoState({completed: false});
+      setRoscActive(false);
     }
   };
 
@@ -404,10 +410,11 @@ function App() {
         
         setTime(seconds);
         addEvent('start', `Timer gestartet (Start: ${formatTime(seconds)})`);
-        setShowStartTime(false);
       } else {
         addEvent('start', 'Timer gestartet');
       }
+      setShowStartTime(false);
+      setStartTimeInput('');
     }
     setRunning(!running);
   };
@@ -429,12 +436,17 @@ function App() {
 
   const toggleHsHits = () => {
     setShowHsHits(!showHsHits);
-    if (!showHsHits) setShowMeds(false);
+    if (!showHsHits) { setShowMeds(false); setShowEcprInfo(false); }
   };
 
   const toggleMeds = () => {
     setShowMeds(!showMeds);
-    if (!showMeds) setShowHsHits(false);
+    if (!showMeds) { setShowHsHits(false); setShowEcprInfo(false); }
+  };
+
+  const toggleEcprInfo = () => {
+    setShowEcprInfo(!showEcprInfo);
+    if (!showEcprInfo) { setShowHsHits(false); setShowMeds(false); }
   };
 
   const endResuscitation = () => {
@@ -528,9 +540,12 @@ th {
     `).join('')}
   </tbody>
 </table>
-<div style="margin-top: 40px; text-align: center;">
+<div style="margin-top: 40px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
   <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #3b82f6; color: white; border: none; border-radius: 5px;">
     PDF speichern / Drucken
+  </button>
+  <button onclick="if(confirm('Zurück zur App? Dieses Fenster wird geschlossen.')) { window.close(); }" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #6b7280; color: white; border: none; border-radius: 5px;">
+    ✕ Zurück zur App
   </button>
 </div>
 </body>
@@ -549,11 +564,11 @@ th {
   const pocusElapsed = pocusState.completed && pocusState.time !== null ? time - pocusState.time : null;
   const bgaElapsed = bgaState.completed && bgaState.time !== null ? time - bgaState.time : null;
   
-  // Blink-Logik für Rhythmuskontrolle (ab 2 Minuten)
-  const rhythmBlink = lastRhythm !== null && (time - lastRhythm) >= 120;
-  
-  // Blink-Logik für Adrenalin (ab 4 Minuten)
-  const adrenalinBlink = lastAdrenalin !== null && (time - lastAdrenalin) >= 240;
+  // Blink-Logik für Rhythmuskontrolle (ab 2 Minuten) – stoppt bei ROSC
+  const rhythmBlink = !roscActive && lastRhythm !== null && (time - lastRhythm) >= 120;
+
+  // Blink-Logik für Adrenalin (ab 4 Minuten) – stoppt bei ROSC
+  const adrenalinBlink = !roscActive && lastAdrenalin !== null && (time - lastAdrenalin) >= 240;
 
   // ========== RENDER ==========
   return (
@@ -879,18 +894,27 @@ th {
         </div>
 
         {/* Info Toggle Buttons */}
-        <div className="flex justify-center gap-3 mb-6">
-          <button 
-            onClick={toggleHsHits} 
-            className="flex-1 max-w-[200px] px-4 py-3 rounded-lg bg-gray-600 hover:bg-gray-500 font-semibold transition-colors"
+        <div className="flex gap-3 mb-3">
+          <button
+            onClick={toggleHsHits}
+            className="flex-1 px-4 py-3 rounded-lg bg-gray-600 hover:bg-gray-500 font-semibold transition-colors"
           >
             Hs & HITS
           </button>
-          <button 
-            onClick={toggleMeds} 
-            className="flex-1 max-w-[200px] px-4 py-3 rounded-lg bg-gray-600 hover:bg-gray-500 font-semibold transition-colors"
+          <button
+            onClick={toggleMeds}
+            className="flex-1 px-4 py-3 rounded-lg bg-gray-600 hover:bg-gray-500 font-semibold transition-colors"
           >
             Medis
+          </button>
+        </div>
+        <div className="mb-6">
+          <button
+            onClick={toggleEcprInfo}
+            className="w-full px-4 py-3 rounded-lg bg-gray-600 hover:bg-gray-500 font-semibold transition-colors flex items-center justify-center gap-2"
+          >
+            <Info size={16} />
+            eCPR-Kriterien
           </button>
         </div>
 
@@ -1023,6 +1047,39 @@ th {
                 <p className="text-xs text-gray-300">0,6mg/kgKG max. 50mg</p>
                 <p className="text-xs text-gray-400">Lungenembolie (dann mind. 60-90min CPR)</p>
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* eCPR-Kriterien Panel */}
+        {showEcprInfo && (
+          <div className="bg-gray-800 rounded-lg p-4 mb-6 max-h-96 overflow-y-auto">
+            <h2 className="text-lg font-semibold mb-4">ℹ️ eCPR – Selektionskriterien</h2>
+            <div className="space-y-3 text-sm">
+              <div>
+                <p className="text-xs font-semibold text-yellow-300">Indikation</p>
+                <p className="text-xs text-gray-300">Refraktärer Kreislaufstillstand (kein ROSC nach ca. 15–20 Min. konventioneller ALS).</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-yellow-300">Reversibilität</p>
+                <p className="text-xs text-gray-300">Ursache potenziell behebbar (z. B. Herzinfarkt, Lungenembolie, Intoxikation, Hypothermie).</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-yellow-300">Voraussetzungen für Erfolg</p>
+                <p className="text-xs text-gray-300">• Beobachteter Kollaps.</p>
+                <p className="text-xs text-gray-300">• Unverzüglicher Beginn der CPR (Laien oder Fachpersonal).</p>
+                <p className="text-xs text-gray-300">• Initial schockbarer Rhythmus (VF/pVT) assoziiert mit besserem Outcome.</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-red-300">Zeitfaktor</p>
+                <p className="text-xs text-gray-300">Gesamte „Low-Flow-Zeit" (Kollaps bis Kanülierung) <span className="font-bold text-white">&lt; 60 Min.</span></p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-yellow-300">Patientenfaktoren</p>
+                <p className="text-xs text-gray-300">• Alter meist &lt; 65–75 Jahre (Zentrums-spezifisch).</p>
+                <p className="text-xs text-gray-300">• Keine schweren neurologischen oder terminalen Vorerkrankungen.</p>
+                <p className="text-xs text-gray-300">• Keine entgegenstehende Patientenverfügung.</p>
+              </div>
             </div>
           </div>
         )}

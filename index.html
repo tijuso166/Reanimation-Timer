@@ -37,7 +37,12 @@ body {
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState, useEffect} = React;
+const {useState, useEffect, useRef} = React;
+
+// ========== APP VERSION ==========
+// Bitte bei jedem Update manuell anpassen:
+const APP_VERSION = "1.1";
+const APP_VERSION_DATE = "02.07.2026";
 
 // ========== ICONS ==========
 const Play = (props) => (
@@ -112,6 +117,9 @@ function App() {
   const [showEcprInfo, setShowEcprInfo] = useState(false);
   const [showStartTime, setShowStartTime] = useState(false);
   const [startTimeInput, setStartTimeInput] = useState('');
+  const [showAppInfo, setShowAppInfo] = useState(false);
+  const [showAbortInput, setShowAbortInput] = useState(false);
+  const [abortTimeInput, setAbortTimeInput] = useState('');
   const [lastShock, setLastShock] = useState(null);
   const [lastAdrenalin, setLastAdrenalin] = useState(null);
   const [lastAmiodaron, setLastAmiodaron] = useState(null);
@@ -123,6 +131,9 @@ function App() {
   const [bgaState, setBgaState] = useState({completed: false, time: null});
   const [kapnoState, setKapnoState] = useState({completed: false});
   const [roscActive, setRoscActive] = useState(false);
+
+  // Referenz-Timestamp für timestamp-basierte Zeitberechnung (robust gegen Drosselung bei Bildschirm-Aus)
+  const startTimestampRef = useRef(null);
 
   // Data Configuration
   const rhythmTypes = [
@@ -191,29 +202,41 @@ function App() {
   ];
 
   // Timer Effect
+  // Zeitstempel-basiert statt Hochzählen: robust gegen Drosselung/Pausierung
+  // von setInterval bei gesperrtem/ausgeschaltetem Bildschirm.
   useEffect(() => {
     let interval;
     if (running) {
       interval = setInterval(() => {
-        setTime(prevTime => {
-          const newTime = prevTime + 1;
-          
-          // Reset POCUS after 10 minutes
-          if (pocusState.completed && pocusState.time !== null && newTime - pocusState.time >= 600) {
-            setPocusState({completed: false, time: null});
-          }
-          
-          // Reset BGA after 10 minutes
-          if (bgaState.completed && bgaState.time !== null && newTime - bgaState.time >= 600) {
-            setBgaState({completed: false, time: null});
-          }
-          
-          return newTime;
-        });
+        const newTime = Math.floor((Date.now() - startTimestampRef.current) / 1000);
+        setTime(newTime);
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [running, pocusState, bgaState]);
+  }, [running]);
+
+  // Beim Wiedersichtbarwerden der Seite sofort die Zeit aus dem
+  // Referenz-Timestamp neu berechnen (statt bis zum nächsten Tick zu warten).
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && running && startTimestampRef.current !== null) {
+        const newTime = Math.floor((Date.now() - startTimestampRef.current) / 1000);
+        setTime(newTime);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [running]);
+
+  // POCUS/BGA nach 10 Minuten zurücksetzen (folgt "time", egal wie es berechnet wurde)
+  useEffect(() => {
+    if (pocusState.completed && pocusState.time !== null && time - pocusState.time >= 600) {
+      setPocusState({completed: false, time: null});
+    }
+    if (bgaState.completed && bgaState.time !== null && time - bgaState.time >= 600) {
+      setBgaState({completed: false, time: null});
+    }
+  }, [time, pocusState, bgaState]);
 
   // Wake Lock Effect
   useEffect(() => {
@@ -383,20 +406,25 @@ function App() {
       setShowAmiodaronInfo(false);
       setShowStartTime(false);
       setStartTimeInput('');
+      setShowAppInfo(false);
+      setShowAbortInput(false);
+      setAbortTimeInput('');
       setPocusState({completed: false, time: null});
       setBgaState({completed: false, time: null});
       setKapnoState({completed: false});
       setRoscActive(false);
+      startTimestampRef.current = null;
     }
   };
 
   const toggleTimer = () => {
     if (!running) {
+      let initialSeconds = time;
       if (showStartTime && startTimeInput) {
         // Parse MM:SS format
         const parts = startTimeInput.split(':');
         let seconds = 0;
-        
+
         if (parts.length === 2) {
           // MM:SS format
           const mins = parseInt(parts[0]) || 0;
@@ -407,12 +435,14 @@ function App() {
           const mins = parseInt(parts[0]) || 0;
           seconds = mins * 60;
         }
-        
+
+        initialSeconds = seconds;
         setTime(seconds);
         addEvent('start', `Timer gestartet (Start: ${formatTime(seconds)})`);
       } else {
         addEvent('start', 'Timer gestartet');
       }
+      startTimestampRef.current = Date.now() - initialSeconds * 1000;
       setShowStartTime(false);
       setStartTimeInput('');
     }
@@ -436,17 +466,22 @@ function App() {
 
   const toggleHsHits = () => {
     setShowHsHits(!showHsHits);
-    if (!showHsHits) { setShowMeds(false); setShowEcprInfo(false); }
+    if (!showHsHits) { setShowMeds(false); setShowEcprInfo(false); setShowAppInfo(false); }
   };
 
   const toggleMeds = () => {
     setShowMeds(!showMeds);
-    if (!showMeds) { setShowHsHits(false); setShowEcprInfo(false); }
+    if (!showMeds) { setShowHsHits(false); setShowEcprInfo(false); setShowAppInfo(false); }
   };
 
   const toggleEcprInfo = () => {
     setShowEcprInfo(!showEcprInfo);
-    if (!showEcprInfo) { setShowHsHits(false); setShowMeds(false); }
+    if (!showEcprInfo) { setShowHsHits(false); setShowMeds(false); setShowAppInfo(false); }
+  };
+
+  const toggleAppInfo = () => {
+    setShowAppInfo(!showAppInfo);
+    if (!showAppInfo) { setShowHsHits(false); setShowMeds(false); setShowEcprInfo(false); }
   };
 
   const endResuscitation = () => {
@@ -535,7 +570,7 @@ th {
       <tr>
         <td class="time-col">${formatTime(event.time)}</td>
         <td class="timestamp-col">${event.timestamp}</td>
-        <td>${event.label}</td>
+        <td>${event.type === 'abort' ? `${event.label}, ${new Date().toLocaleDateString('de-DE')}` : event.label}</td>
       </tr>
     `).join('')}
   </tbody>
@@ -578,13 +613,48 @@ th {
         {/* Header */}
         <div className="text-center mb-6">
           <div className="flex items-end justify-between">
-            <div className="flex-1" />
-            <h1 className="text-2xl font-bold">REA-Timer</h1>
-            <div className="flex-1 flex justify-end items-end">
-              <p className="text-[10px] text-gray-400">by Til Sonntag</p>
+            <div className="flex-1 flex justify-start items-end">
+              <button
+                onClick={toggleAppInfo}
+                className="p-1 text-gray-400 hover:text-white transition-colors"
+                aria-label="Info"
+              >
+                <Info size={18} />
+              </button>
             </div>
+            <h1 className="text-2xl font-bold">REA-Timer</h1>
+            <div className="flex-1" />
           </div>
         </div>
+
+        {/* App Info Panel */}
+        {showAppInfo && (
+          <div className="bg-gray-800 rounded-lg p-4 mb-6 text-sm text-gray-300">
+            <h2 className="text-lg font-semibold text-white mb-3">ℹ️ Info</h2>
+
+            <div className="mb-4">
+              <p className="font-semibold text-white mb-1">Installation</p>
+              <p className="text-xs mb-1">
+                <span className="font-semibold text-gray-200">Android/Chrome:</span> Menü ⋮ öffnen → 'App installieren' bzw. 'Zum Startbildschirm hinzufügen' antippen.
+              </p>
+              <p className="text-xs">
+                <span className="font-semibold text-gray-200">iOS/Safari:</span> Teilen-Symbol antippen → 'Zum Home-Bildschirm' auswählen.
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <p className="font-semibold text-white mb-1">Version</p>
+              <p className="text-xs">Version {APP_VERSION} – {APP_VERSION_DATE}</p>
+            </div>
+
+            <div className="mb-4">
+              <p className="font-semibold text-white mb-1">Feedback</p>
+              <p className="text-xs">
+                Feedback bitte an: <a href="mailto:til.sonntag@gmail.com" className="text-blue-400 underline">til.sonntag@gmail.com</a>
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Timer Display */}
         <div className="bg-gray-800 rounded-lg p-8 pb-16 mb-6 text-center relative">
@@ -777,15 +847,70 @@ th {
                             </div>
                           </>
                         ) : (
-                          button.submenu.map(item => (
-                            <button 
-                              key={item.type} 
-                              onClick={() => selectSubmenuItem(item, button.type)} 
-                              className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                            >
-                              {item.label}
-                            </button>
-                          ))
+                          <>
+                            {button.submenu.map(item => (
+                              <button
+                                key={item.type}
+                                onClick={() => {
+                                  if (item.type === 'abort') {
+                                    const now = new Date();
+                                    const hh = String(now.getHours()).padStart(2, '0');
+                                    const mm = String(now.getMinutes()).padStart(2, '0');
+                                    setAbortTimeInput(`${hh}:${mm}`);
+                                    setShowAbortInput(true);
+                                  } else {
+                                    selectSubmenuItem(item, button.type);
+                                  }
+                                }}
+                                className="w-full text-left px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                              >
+                                {item.label}
+                              </button>
+                            ))}
+
+                            {/* Todeszeitpunkt-Eingabe bei Abbruch der Reanimation */}
+                            {button.type === 'events' && showAbortInput && (
+                              <div className="p-3 bg-gray-700 rounded-lg">
+                                <label className="text-sm block mb-2">Todeszeitpunkt (HH:MM):</label>
+                                <div className="flex gap-2 items-center flex-wrap">
+                                  <input
+                                    type="text"
+                                    value={abortTimeInput}
+                                    onChange={(e) => {
+                                      let value = e.target.value.replace(/[^\d]/g, '');
+                                      if (value.length >= 2) {
+                                        value = value.slice(0, 2) + ':' + value.slice(2, 4);
+                                      }
+                                      setAbortTimeInput(value);
+                                    }}
+                                    className="w-24 px-3 py-2 bg-gray-800 rounded text-white text-center font-mono"
+                                    placeholder="HH:MM"
+                                    maxLength="5"
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      addEvent('abort', `Abbruch der Reanimation – Todeszeitpunkt: ${abortTimeInput} Uhr`);
+                                      setShowAbortInput(false);
+                                      setAbortTimeInput('');
+                                      setEventsOpen(false);
+                                    }}
+                                    className="px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-semibold transition-colors"
+                                  >
+                                    Bestätigen
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setShowAbortInput(false);
+                                      setAbortTimeInput('');
+                                    }}
+                                    className="px-3 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-sm font-semibold transition-colors"
+                                  >
+                                    Abbrechen
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     )}

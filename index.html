@@ -6,11 +6,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Reanimation">
+<meta name="theme-color" content="#111827">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/icon-180.png">
 <title>Reanimations-Timer</title>
-<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
+<script src="./vendor/react.production.min.js"></script>
+<script src="./vendor/react-dom.production.min.js"></script>
+<script src="./vendor/babel.min.js"></script>
+<script src="./vendor/tailwind.min.js"></script>
 <style>
 body {
   margin: 0;
@@ -131,16 +134,16 @@ function App() {
   const [bgaState, setBgaState] = useState({completed: false, time: null});
   const [kapnoState, setKapnoState] = useState({completed: false});
   const [roscActive, setRoscActive] = useState(false);
-  const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [newVersionInfo, setNewVersionInfo] = useState(null);
+
+  // Service-Worker-Update: swUpdatePending = ein neuer Worker ist installiert
+  // und wartet, unabhängig davon ob das Banner gerade angezeigt werden darf.
+  const [swUpdatePending, setSwUpdatePending] = useState(false);
+  const [swBannerDismissed, setSwBannerDismissed] = useState(false);
+  const [swVersion, setSwVersion] = useState(null);
+  const waitingWorkerRef = useRef(null);
 
   // Referenz-Timestamp für timestamp-basierte Zeitberechnung (robust gegen Drosselung bei Bildschirm-Aus)
   const startTimestampRef = useRef(null);
-
-  // Referenz auf "running", damit die Versionsprüfung (siehe unten) immer den
-  // aktuellen Wert kennt, ohne dass ihre Intervalle/Timeouts neu aufgesetzt werden müssen.
-  const runningRef = useRef(running);
-  useEffect(() => { runningRef.current = running; }, [running]);
 
   // Data Configuration
   const rhythmTypes = [
@@ -281,27 +284,58 @@ function App() {
     };
   }, [running]);
 
-  // Versionsprüfung a) einmalig ~2s nach dem ersten Laden
+  // Service Worker: Registrierung, Update-Erkennung und Versions-Konsistenzprüfung.
   useEffect(() => {
-    const timeoutId = setTimeout(() => { checkForUpdate(); }, 2000);
-    return () => clearTimeout(timeoutId);
-  }, []);
+    if (!('serviceWorker' in navigator)) return;
 
-  // Versionsprüfung b) danach alle 10 Minuten im Hintergrund
-  useEffect(() => {
-    const intervalId = setInterval(() => { checkForUpdate(); }, 10 * 60 * 1000);
-    return () => clearInterval(intervalId);
-  }, []);
+    const requestSwVersion = (worker) => {
+      if (!worker) return;
+      const channel = new MessageChannel();
+      channel.port1.onmessage = (event) => {
+        if (event.data && event.data.type === 'VERSION') {
+          setSwVersion(event.data.version);
+          if (event.data.version !== APP_VERSION) {
+            console.warn(`Versionskonflikt: App ${APP_VERSION} / Cache ${event.data.version}`);
+          }
+        }
+      };
+      worker.postMessage({ type: 'GET_VERSION' }, [channel.port2]);
+    };
 
-  // Versionsprüfung c) zusätzlich beim Wiedersichtbarwerden der Seite
-  useEffect(() => {
-    const handleVisibilityChangeForUpdate = () => {
-      if (document.visibilityState === 'visible') {
-        checkForUpdate();
+    const onLoad = () => {
+      try {
+        navigator.serviceWorker.register('./sw.js').then((registration) => {
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', () => {
+              // navigator.serviceWorker.controller existiert nur, wenn bereits eine
+              // vorherige Version aktiv war (kein Erstinstall) - genau dann ist es
+              // ein echtes Update, auf das der Nutzer hingewiesen werden soll.
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                waitingWorkerRef.current = newWorker;
+                setSwUpdatePending(true);
+              }
+            });
+          });
+
+          navigator.serviceWorker.ready.then((readyRegistration) => {
+            requestSwVersion(readyRegistration.active);
+          });
+        }).catch((err) => {
+          console.warn('Service-Worker-Registrierung fehlgeschlagen:', err);
+        });
+      } catch (err) {
+        console.warn('Service-Worker-Registrierung fehlgeschlagen:', err);
       }
     };
-    document.addEventListener('visibilitychange', handleVisibilityChangeForUpdate);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChangeForUpdate);
+
+    if (document.readyState === 'complete') {
+      onLoad();
+    } else {
+      window.addEventListener('load', onLoad);
+    }
+    return () => window.removeEventListener('load', onLoad);
   }, []);
 
   // Helper Functions
@@ -514,26 +548,17 @@ function App() {
     if (!showAppInfo) { setShowHsHits(false); setShowMeds(false); setShowEcprInfo(false); }
   };
 
-  // Versionsprüfung: vergleicht die lokal geladene APP_VERSION mit der aktuell
-  // auf GitHub Pages deployten index.html. Läuft nie während einer laufenden
-  // Reanimation und darf die App bei Fehlern (z.B. offline) niemals stören.
-  const checkForUpdate = async () => {
-    if (runningRef.current) return;
-    try {
-      const res = await fetch(window.location.pathname + '?cachebust=' + Date.now(), { cache: 'no-store' });
-      const text = await res.text();
-      const match = text.match(/const APP_VERSION = "([^"]+)"/);
-      if (match && match[1] && match[1] !== APP_VERSION) {
-        setNewVersionInfo(match[1]);
-        setUpdateAvailable(true);
-      }
-    } catch (err) {
-      console.warn('Versionsprüfung fehlgeschlagen:', err);
+  // Aktiviert den wartenden Service-Worker und lädt danach neu. Wird nur über
+  // den Button "Jetzt aktualisieren" ausgelöst - niemals automatisch, siehe
+  // showSwUpdateBanner-Bedingung weiter unten (kein Reload während running/Events).
+  const applySwUpdate = () => {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    }, { once: true });
+    if (waitingWorkerRef.current) {
+      waitingWorkerRef.current.postMessage({ type: 'SKIP_WAITING' });
     }
-  };
-
-  const reloadApp = () => {
-    window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now();
   };
 
   const endResuscitation = () => {
@@ -657,29 +682,15 @@ th {
   // Blink-Logik für Adrenalin (ab 4 Minuten) – stoppt bei ROSC
   const adrenalinBlink = !roscActive && lastAdrenalin !== null && (time - lastAdrenalin) >= 240;
 
+  // Das SW-Update-Banner darf niemals während einer laufenden/dokumentierten
+  // Reanimation erscheinen - sonst würde ein Reload Timer und Log zerstören.
+  const showSwUpdateBanner = swUpdatePending && !swBannerDismissed && !running && events.length === 0;
+  const swVersionMismatch = swVersion !== null && swVersion !== APP_VERSION;
+
   // ========== RENDER ==========
   return (
     <>
-      {/* Update-Banner */}
-      {updateAvailable && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-blue-600 text-white shadow-lg flex items-center">
-          <button
-            onClick={reloadApp}
-            className="flex-1 text-left px-4 py-2 text-sm font-semibold hover:bg-blue-700 transition-colors"
-          >
-            🆕 Neue Version (v{newVersionInfo}) verfügbar – Tippen zum Aktualisieren
-          </button>
-          <button
-            onClick={() => setUpdateAvailable(false)}
-            className="px-3 py-2 text-white/80 hover:text-white"
-            aria-label="Banner schließen"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-    <div className={`min-h-screen bg-gray-900 text-white p-4 ${updateAvailable ? 'pt-12' : ''}`}>
+    <div className={`min-h-screen bg-gray-900 text-white p-4 ${showSwUpdateBanner ? 'pb-12' : ''}`}>
       <div className="max-w-md mx-auto">
 
         {/* Header */}
@@ -701,8 +712,62 @@ th {
 
         {/* App Info Panel */}
         {showAppInfo && (
-          <div className="bg-gray-800 rounded-lg p-4 mb-6 text-sm text-gray-300">
+          <div className="bg-gray-800 rounded-lg p-4 mb-6 text-sm text-gray-300 max-h-[70vh] overflow-y-auto">
             <h2 className="text-lg font-semibold text-white mb-3">ℹ️ Info</h2>
+
+            <div className="mb-4">
+              <p className="font-semibold text-white mb-1">Zweckbestimmung</p>
+              <p className="text-xs mb-2">
+                Diese Anwendung dient ausschließlich der Zeiterfassung und der Dokumentation von
+                Ereignissen während einer Reanimation. Sie erfasst keine Patientendaten, führt keine
+                patientenbezogenen Berechnungen durch, trifft keine Aussage über den Zustand eines
+                konkreten Patienten und gibt keine Behandlungsempfehlungen.
+              </p>
+              <p className="text-xs mb-2">
+                Die hinterlegten Leitlinieninhalte sind ein reines Nachschlagewerk und ersetzen weder
+                die Fachinformation noch den geltenden Klinik- oder Rettungsdienststandard.
+              </p>
+              <p className="text-xs">
+                Die Nutzung erfolgt im privaten Rahmen. Ein Einsatz in klinischen oder
+                rettungsdienstlichen Regelabläufen ist nicht vorgesehen.
+              </p>
+            </div>
+
+            <div className="mb-4 p-3 border border-yellow-500/50 bg-yellow-500/10 rounded-lg">
+              <p className="font-semibold text-yellow-300 mb-1">⚠️ Erinnerungs- und Hinweisfunktionen</p>
+              <p className="text-xs mb-2">
+                Blinkende Schaltflächen, Zähler, Farbwechsel und alle sonstigen Hinweise dieser App
+                sind ausschließlich zeitgesteuerte Erinnerungen. Sie sollen zum Nachdenken über den
+                nächsten Schritt anregen – nicht mehr.
+              </p>
+              <p className="text-xs mb-2">
+                Ein Hinweis bedeutet insbesondere NICHT, dass ein Medikament gegeben werden soll, dass
+                eine Gabe bereits erfolgt ist, dass eine Rhythmuskontrolle durchgeführt wurde oder dass
+                sich der Rhythmus des Patienten geändert hat. Die App misst ausschließlich die Zeit seit
+                der letzten von Hand eingetragenen Eingabe. Sie kennt den Patienten nicht, misst keine
+                Vitalparameter und kann nicht erkennen, ob eine Maßnahme sinnvoll, indiziert oder
+                kontraindiziert ist.
+              </p>
+              <p className="text-xs mb-2">
+                Ob, wann und in welcher Dosierung eine Maßnahme erfolgt, entscheidet ausschließlich das
+                behandelnde Fachpersonal anhand des Patienten, der aktuellen Leitlinien und des
+                geltenden Standards.
+              </p>
+              <p className="text-xs">
+                Bleibt ein Hinweis aus – etwa weil eine Eingabe vergessen wurde, die App pausiert war
+                oder ein technischer Fehler vorliegt – entbindet das nicht von der eigenständigen Zeit-
+                und Therapiekontrolle.
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <p className="font-semibold text-white mb-1">Technische Grenzen</p>
+              <p className="text-xs">
+                Die App kann durch Akkuende, Absturz, Displaysperre, Betriebssystem-Updates oder
+                Bedienfehler ausfallen oder falsche Zeiten anzeigen. Sie darf niemals die einzige
+                Zeitquelle während einer Reanimation sein.
+              </p>
+            </div>
 
             <div className="mb-4">
               <p className="font-semibold text-white mb-1">Installation</p>
@@ -711,6 +776,11 @@ th {
               </p>
               <p className="text-xs">
                 <span className="font-semibold text-gray-200">iOS/Safari:</span> Teilen-Symbol antippen → 'Zum Home-Bildschirm' auswählen.
+              </p>
+              <p className="text-xs mt-2">
+                Nach dem ersten Aufruf funktioniert die App vollständig offline. Updates werden beim
+                Öffnen mit bestehender Internetverbindung geladen und über den Hinweis "Neue Version
+                verfügbar" eingespielt.
               </p>
             </div>
 
@@ -742,6 +812,11 @@ th {
             <div className="mb-4">
               <p className="font-semibold text-white mb-1">Version</p>
               <p className="text-xs">Version {APP_VERSION} – {APP_VERSION_DATE}</p>
+              {swVersionMismatch && (
+                <p className="text-xs text-yellow-400 mt-1">
+                  ⚠️ Versionskonflikt: App {APP_VERSION} / Cache {swVersion}
+                </p>
+              )}
             </div>
 
             <div className="mb-4">
@@ -1359,6 +1434,28 @@ th {
 
       </div>
     </div>
+
+    {/* Service-Worker-Update-Banner: schmale Leiste ganz unten, nie während
+        laufender/dokumentierter Reanimation (siehe showSwUpdateBanner). */}
+    {showSwUpdateBanner && (
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-gray-800 border-t border-gray-600 text-xs flex items-center justify-between gap-2 px-3 py-2">
+        <span className="text-gray-200">Neue Version verfügbar</span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setSwBannerDismissed(true)}
+            className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
+          >
+            Später
+          </button>
+          <button
+            onClick={applySwUpdate}
+            className="px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 font-semibold transition-colors"
+          >
+            Jetzt aktualisieren
+          </button>
+        </div>
+      </div>
+    )}
     </>
   );
 }
